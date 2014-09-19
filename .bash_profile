@@ -1,38 +1,10 @@
-# If not running interactively, don't do anything
-[ -z "$PS1" ] && return
+# .bash_profile
 
-# check the window size after each command and, if necessary,
-# update the values of LINES and COLUMNS.
-shopt -s checkwinsize
-
-# language settings
-LANG=en_US.utf8
-
-export LANG
-
-# history setings mp
-HISTFILESIZE=10000000
-HISTSIZE=100000
-HISTCONTROL=ignoreboth
-HISTTIMEFORMAT='%F %T | '
-shopt -s histappend
-
-export HISTTIMEFORMAT
-export HISTCONTROL
-export HISTSIZE
-export HISTFILESIZE
-
-# source i24 .bash_login
-if [ -r ~/.bash_login ]
-then
-    . ~/.bash_login
+# Get the aliases and functions
+if [ -f ~/.bashrc ]; then
+        . ~/.bashrc
 fi
 
-# source aliases if available
-if [ -r ~/.bash_alias ]
-then
-    . ~/.bash_alias
-fi
 
 # shared history between sessions
 PROMPT_COMMAND="history -a; history -n;"
@@ -86,8 +58,6 @@ savef() {
         done
 }
 
-
-
 # show hostname in tmux-tab
 settitle() {
       printf "\033k$1\033\\"
@@ -100,3 +70,4 @@ ssh() {
 }
 
 settitle "tkcentos6"
+

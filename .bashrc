@@ -1,77 +1,15 @@
-# ~/.bashrc: executed by bash(1) for non-login shells.
-# see /usr/share/doc/bash/examples/startup-files (in the package bash-doc)
-# for examples
+# .bashrc
 
-# If not running interactively, don't do anything
-[ -z "$PS1" ] && return
+# User specific aliases and functions
 
-# don't put duplicate lines in the history. See bash(1) for more options
-# don't overwrite GNU Midnight Commander's setting of `ignorespace'.
-export HISTCONTROL=$HISTCONTROL${HISTCONTROL+,}ignoredups
-# ... or force ignoredups and ignorespace
-export HISTCONTROL=ignoreboth
+alias l='ls -lha'
+alias ..='cd ..'
+alias ...='cd ../..'
 
-# append to the history file, don't overwrite it
-shopt -s histappend
-
-# for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
-
-# check the window size after each command and, if necessary,
-# update the values of LINES and COLUMNS.
-shopt -s checkwinsize
-
-# set variable identifying the chroot you work in (used in the prompt below)
-if [ -z "$debian_chroot" ] && [ -r /etc/debian_chroot ]; then
-    debian_chroot=$(cat /etc/debian_chroot)
+# Source global definitions
+if [ -f /etc/bashrc ]; then
+        . /etc/bashrc
 fi
-
-# set a fancy prompt (non-color, unless we know we "want" color)
-case "$TERM" in
-    xterm-color) color_prompt=yes;;
-esac
-
-# uncomment for a colored prompt, if the terminal has the capability; turned
-# off by default to not distract the user: the focus in a terminal window
-# should be on the output of commands, not on the prompt
-#force_color_prompt=yes
-
-if [ -n "$force_color_prompt" ]; then
-    if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
-        # We have color support; assume it's compliant with Ecma-48
-        # (ISO/IEC-6429). (Lack of such support is extremely rare, and such
-        # a case would tend to support setf rather than setaf.)
-        color_prompt=yes
-    else
-        color_prompt=
-    fi
-fi
-
-if [ "$color_prompt" = yes ]; then
-    PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
-else
-#    PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
-    PS1='${debian_chroot:+($debian_chroot)}$ '
-
-fi
-unset color_prompt force_color_prompt
-
-# If this is an xterm set the title to user@host:dir
-case "$TERM" in
-xterm*|rxvt*)
-    PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
-    ;;
-*)
-    ;;
-esac
-
-# Alias definitions.
-# You may want to put all your additions into a separate file like
-# ~/.bash_aliases, instead of adding them here directly.
-# See /usr/share/doc/bash-doc/examples in the bash-doc package.
-
-#if [ -f ~/.bash_aliases ]; then
-#    . ~/.bash_aliases
-#fi
 
 # enable color support of ls and also add handy aliases
 if [ -x /usr/bin/dircolors ]; then
@@ -85,14 +23,87 @@ if [ -x /usr/bin/dircolors ]; then
     alias egrep='egrep --color=auto'
 fi
 
-# some more ls aliases
-#alias ll='ls -l'
-#alias la='ls -A'
-#alias l='ls -CF'
 
-# enable programmable completion features (you don't need to enable
-# this, if it's already enabled in /etc/bash.bashrc and /etc/profile
-# sources /etc/bash.bashrc).
-if [ -f /etc/bash_completion ]; then
-    . /etc/bash_completion
-fi
+export HISTTIMEFORMAT="%F %T "
+export HISTCONTROL=$HISTCONTROL${HISTCONTROL+,}ignoreboth
+export PROMPT_COMMAND="history -a; history -n;"
+
+shopt -s histappend
+
+alias pscgroup='ps -O cgroup:40 -e'
+
+function cgunfreeze() {
+        local group=user_services base=/cgroup/system_controller cgroup=
+        local subsys=freezer cmd=THAWED param=freezer.state
+
+        if [ "x${1}" == "x" -o ! -w ${base}/${1}/${param} -a ! -w ${base}/${group}/${1}/${param} ]
+        then
+                echo "usage: cgunfreeze [basegroup/]subgroup"
+                return 255;
+        fi
+
+        if [ -w ${base}/${1}/${param} ]
+        then
+                cgroup=${1}/
+        else
+                cgroup=${group}/${1}/
+        fi
+
+        cgset -r ${param}=${cmd} ${cgroup} && echo "cgroup ${cgroup} successfully unfrozen"
+}
+
+function cgfreeze() {
+    local group=user_services base=/cgroup/system_controller cgroup=
+    local subsys=freezer cmd=FROZEN param=freezer.state
+
+    if [ "x${1}" == "x" -o ! -w ${base}/${1}/${param} -a ! -w ${base}/${group}/${1}/${param} ]
+    then
+        echo "usage: cgfreeze [basegroup/]subgroup"
+        return 255;
+    fi
+
+    if [ -w ${base}/${1}/${param} ]
+    then
+        cgroup=${1}/
+    else
+        cgroup=${group}/${1}/
+    fi
+
+    cgset -r ${param}=${cmd} ${cgroup} && echo "cgroup ${cgroup} successfully frozen"
+}
+
+function avgmem() {
+    local cmd_group=$1
+    if [ "x${cmd_group}" == "x" ]
+    then
+        echo "usage: avgmem command"
+        return 255;
+    fi
+
+    ps -eF | grep ${cmd_group} | grep -v grep | awk -v cmd_group=${cmd_group} 'BEGIN {
+unit[0]="KiB";
+unit[1]="MiB";
+unit[2]="GiB";
+count=0;
+count_tot=0
+}
+{
+sum_procs++;
+sum_mem += $6;
+sum_mem_tot += $6;
+
+}
+
+END {
+while(sum_mem >= 1048576) {
+    sum_mem /= 1024;
+    count++;
+}
+while(sum_mem_tot >= 1024) {
+    sum_mem_tot /= 1024;
+    count_tot++;
+}
+printf("Approximately memory consumption of %s (%d procs): %.2f %s (total %.2f %s)\n", cmd_group, sum_procs, sum_mem / sum_procs, unit[count],sum_mem_tot, unit[count_tot])
+}'
+}
+
